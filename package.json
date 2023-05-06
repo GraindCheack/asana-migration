@@ -1,0 +1,22 @@
+{
+  "name": "fatj",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "from asana to jetbrains",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "asana",
+    "jetbrains",
+    "migration"
+  ],
+  "author": "mklusovich",
+  "license": "ISC",
+  "dependencies": {
+    "asana": "1.0.2",
+    "browserify": "17.0.0",
+    "requirejs": "^2.3.6"
+  }
+}

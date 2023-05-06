@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<script type="module" src="script.js"></script>
+<script type="module" src="asanaGenerated.js"></script>
+
+<link rel="stylesheet" href="styles.css">
+<body>
+<div class="container">
+    <h1>FATJ</h1>
+    <div id='jet-brains-projects' class="select-wrapper">
+        <div id='jet-projects-select' class="select">
+            <div class="select__trigger"><span>Jet Brains Projects</span>
+                <div class="jet-arrow"></div>
+            </div>
+            <div id="jet-brains-options" class="custom-options jet-brains-options">
+            </div>
+        </div>
+    </div>
+
+    <div id='asana-projects' class="select-wrapper">
+        <div id='asana-projects-select' class="select">
+            <div class="select__trigger"><span>Asana Projects</span>
+                <div class="asana-arrow"></div>
+            </div>
+            <div id="asana-project-options" class="custom-options asana-project-options">
+                <div class="asana-project-options-filter">
+                    <input type="text" id="asana-projects-filter">
+                </div>
+                <div class="offset"></div>
+            </div>
+        </div>
+    </div>
+    <label class="input-file">
+        <span id='file-loader-text' class="input" type="text"></span>
+        <input id='file-loader' type="file" name="file" placeholder="File">
+        <span class="input-file-btn">Choose file</span>
+    </label>
+
+    <button disabled="true" id='submit-button' class="submit-button disabled" role="button">Migrate tasks</button>
+
+    <div id="spinner" class="modal hidden">
+        <div class="spin-wrapper">
+            <div class="spinner">
+            </div>
+        </div>
+    </div>
+    <div id="migrate-result" class="modal hidden">
+        <div class="result-title">
+            <div><span></span></div>
+            <div>Result</div>
+            <div id="migrate-result-close" class="result-title-close">
+                <div class="result-title-close-icon">X</div>
+            </div>
+        </div>
+        <div id="migrate-result-list" class="result-list">
+        </div>
+    </div>
+</div>
+</body>
+</html>
