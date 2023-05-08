@@ -247,7 +247,7 @@ export async function initControllers() {
             }
 
             const jetStatuses = await Promise.allSettled(customStatusesPromises);
-            const mappedJetStatuses = [...customFields, jetStatuses.map(item => item.value)];
+            const mappedJetStatuses = [...customFields, ...jetStatuses.map(item => item.value)];
 
             const statuses = await JetSpaceHttpService.getJetStatuses(commonService.selectedJetBrainsProject)
             commonService.jetStatuses = statuses;
@@ -269,6 +269,9 @@ export async function initControllers() {
 
 
             migrateResultList.innerHTML = '';
+
+            commonService.issuesList.sort((a, b) => a['Parent Task'].length - b['Parent Task'].length)
+            commonService.createdIssuesIdsByName = {};
 
             let start = 0;
             let end = commonService.issuesList.length < 100 ? commonService.issuesList.length : start + 100;
@@ -298,14 +301,30 @@ export async function initControllers() {
                 });
 
                 issues.forEach((item) => {
-                    promises.push(JetSpaceHttpService.createIssue(item, mappedJetStatuses, jetTags.data, projectMembers, commonService.selectedJetBrainsProject, asanaHttpService));
-                });
+                    promises.push(
+                      JetSpaceHttpService.createIssue(
+                        item,
+                        mappedJetStatuses,
+                        jetTags.data,
+                        projectMembers,
+                        commonService.selectedJetBrainsProject,
+                        asanaHttpService,
+                        item['Parent Task']?.trim() ?  commonService.createdIssuesIdsByName[item['Parent Task']] : null
+                      )
+                    );
+                  });
                 const result = await Promise.allSettled(promises);
 
                 result.forEach((item, index) => {
                     createResultItem(item, issues[index].name);
                 });
 
+                try {
+                    for (const r of result) {
+                        const data = await r?.value?.json();
+                        commonService.createdIssuesIdsByName[data.title] = data.id;
+                    }
+                } catch (error) {}
 
                 for (let i = 0; i < result.length; i++) {
                     const comments = await asanaHttpService.getAsanaTaskComments(issues[i].taskId);
@@ -351,7 +370,6 @@ export async function initControllers() {
                         }
                     }
                 }
-
             }
         });
     }

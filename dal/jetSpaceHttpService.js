@@ -5,7 +5,7 @@ import {AsanaCommentsHelper} from "../helpers/asanaCommentsHelper.js";
 import {CommonHttpService} from "./commonHttp.sepvice.js";
 
 export class JetSpaceHttpService {
-    static async createIssue(item, jetCustomStatuses, jetTags, projectMembers, project, asanaService) {
+    static async createIssue(item, jetCustomStatuses, jetTags, projectMembers, project, asanaService, parentTaskId) {
      const attachmentsObjsIds = await asanaService.getAsanaAttachmentsForObject(item.taskId);
         const attachmentsPromises = [];
         attachmentsObjsIds.forEach(id => attachmentsPromises.push(asanaService.getAsanaAttachments(id, item.taskId)));
@@ -70,7 +70,7 @@ export class JetSpaceHttpService {
 
         const body = {
             "title": item.name || "EMPTY",
-            "description": item.notes,
+            "description": `${item.notes}${item['Parent Task'] ? `\n\nParent task: ${item['Parent Task']}` : ''}`,
             "dueDate": item.dueDate || null,
 
             "status": item.status,
@@ -86,6 +86,10 @@ export class JetSpaceHttpService {
 
         if(customFields.length) {
           body.customFields = customFields;
+        }
+
+        if(parentTaskId) {
+            body.parents = [`id:${parentTaskId}`];
         }
 
         if(tag) {
@@ -201,7 +205,7 @@ export class JetSpaceHttpService {
     }
 
     static async getProjectMembers(projectId) {
-        const result = await window.fetch(`https://datamola.jetbrains.space/api/http/projects/id:${projectId}/access/member-profiles`, {
+        const result = await window.fetch(`https://datamola.jetbrains.space/api/http/projects/id:${projectId}/access/member-profiles?includingAdmins=true`, {
             method: 'GET',
             headers: {
                 'Authorization': 'Bearer ' + localStorage.getItem('jetToken'),

@@ -15,6 +15,7 @@ export class CommonService {
         this.jetStatuses = null;
         this.asanaStatuses = null;
         this.tags = null;
+        this.createdIssuesIdsByName = {};
     }
 
     set token(tokenString) {
