@@ -277,7 +277,11 @@ export async function initControllers() {
             let end = commonService.issuesList.length < 100 ? commonService.issuesList.length : start + 100;
 
             while (start < commonService.issuesList.length) {
-                await createIssuesBatch(commonService.issuesList.slice(start, end));
+                try {
+                    await createIssuesBatch(commonService.issuesList.slice(start, end));
+                } catch (e) {
+                    console.error(`Can not create issues batch from ${start} to ${end}`, e);
+                }
 
                 start = end;
                 end = start + 100 < commonService.issuesList.length ? start + 100 : commonService.issuesList.length;
@@ -310,9 +314,12 @@ export async function initControllers() {
                         commonService.selectedJetBrainsProject,
                         asanaHttpService,
                         item['Parent Task']?.trim() ?  commonService.createdIssuesIdsByName[item['Parent Task']] : null
-                      )
+                      ).catch((e) => {
+                        console.error(`Can not create issue ${item.name}`, e);
+                      })
                     );
                   });
+                
                 const result = await Promise.allSettled(promises);
 
                 result.forEach((item, index) => {
@@ -325,49 +332,53 @@ export async function initControllers() {
                         commonService.createdIssuesIdsByName[data.title] = data.id;
                     }
                 } catch (error) {}
-
+                
                 for (let i = 0; i < result.length; i++) {
-                    const comments = await asanaHttpService.getAsanaTaskComments(issues[i].taskId);
-                    const downloadImagePromises = [];
-
-                    comments.forEach(comment => {
-                        if (comment.text.startsWith('https://asana-user-private-us-east-1.s3.amazonaws.com/assets')) {
-                            downloadImagePromises.push(CommonHttpService.downloadImageAsFile(comment.text))
+                    try {
+                        const comments = await asanaHttpService.getAsanaTaskComments(issues[i].taskId);
+                        const downloadImagePromises = [];
+    
+                        comments.forEach(comment => {
+                            if (comment.text.startsWith('https://asana-user-private-us-east-1.s3.amazonaws.com/assets')) {
+                                downloadImagePromises.push(CommonHttpService.downloadImageAsFile(comment.text))
+                            }
+                        });
+    
+                        const downloadImagePromisesResults = await Promise.allSettled(downloadImagePromises);
+                        let uploadCounter = 0;
+    
+                        const json = await result[i]?.value?.json();
+    
+                        if(json) {
+                            await JetSpaceHttpService.addTaskToBoard(board.id, json.id);
                         }
-                    });
-
-                    const downloadImagePromisesResults = await Promise.allSettled(downloadImagePromises);
-                    let uploadCounter = 0;
-
-                    const json = await result[i]?.value?.json();
-
-                    if(json) {
-                        await JetSpaceHttpService.addTaskToBoard(board.id, json.id);
-                    }
-
-
-                    if (comments.length) {
-
-
-                        if(!json) {
-                           console.log(`${issues[i].name} не было перенесено, добавьте мануально`);
-                        }
-
-                        if(json){
-                            for (let j = 0; j < comments.length; j++) {
-
-                                if (comments[j].text.startsWith('https://asana-user-private-us-east-1.s3.amazonaws.com/assets')) {
-                                    const resultToBlob = await downloadImagePromisesResults[uploadCounter].value.blob();
-                                    const file = new File([resultToBlob], "asanaMigration");
-                                    const imageId = await JetSpaceHttpService.uploadAttachment(file );
-                                    await JetSpaceHttpService.attachImageToJetComment(json.id, imageId);
-                                    uploadCounter++;
-
-                                } else {
-                                    await JetSpaceHttpService.addJetIssueComment(json.id, comments[j]);
+    
+    
+                        if (comments.length) {
+    
+    
+                            if(!json) {
+                               console.log(`${issues[i].name} не было перенесено, добавьте мануально`);
+                            }
+    
+                            if(json){
+                                for (let j = 0; j < comments.length; j++) {
+    
+                                    if (comments[j].text.startsWith('https://asana-user-private-us-east-1.s3.amazonaws.com/assets')) {
+                                        const resultToBlob = await downloadImagePromisesResults[uploadCounter].value.blob();
+                                        const file = new File([resultToBlob], "asanaMigration");
+                                        const imageId = await JetSpaceHttpService.uploadAttachment(file );
+                                        await JetSpaceHttpService.attachImageToJetComment(json.id, imageId);
+                                        uploadCounter++;
+    
+                                    } else {
+                                        await JetSpaceHttpService.addJetIssueComment(json.id, comments[j]);
+                                    }
                                 }
                             }
                         }
+                    } catch (error) {
+                        console.error(`Can not add comments to issue ${issues[i].name}`, error);
                     }
                 }
             }
