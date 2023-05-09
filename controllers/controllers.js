@@ -270,7 +270,15 @@ export async function initControllers() {
 
             migrateResultList.innerHTML = '';
 
-            commonService.issuesList.sort((a, b) => a['Parent Task'].length - b['Parent Task'].length)
+            
+            const issuesByName = {};
+            const issuesParentDeepByName  = {};
+            const getIssueParentDeepByName = (name) => 1 + (issuesByName[name]?.['Parent Task'].trim() ? getIssueParentDeepByName(issuesByName[name]['Parent Task']) : 0);;
+            
+            commonService.issuesList.forEach(issue => { issuesByName[issue.name] = issue; });
+            commonService.issuesList.forEach(issue => { issuesParentDeepByName[issue.name] = getIssueParentDeepByName(issue.name); });
+
+            commonService.issuesList.sort((a, b) => issuesParentDeepByName[a.name] - issuesParentDeepByName[b.name]);
             commonService.createdIssuesIdsByName = {};
 
             let start = 0;
@@ -325,16 +333,12 @@ export async function initControllers() {
                 result.forEach((item, index) => {
                     createResultItem(item, issues[index].name);
                 });
-
-                try {
-                    for (const r of result) {
-                        const data = await r?.value?.json();
-                        commonService.createdIssuesIdsByName[data.title] = data.id;
-                    }
-                } catch (error) {}
                 
                 for (let i = 0; i < result.length; i++) {
                     try {
+                        const json = await result[i]?.value?.json();
+                        commonService.createdIssuesIdsByName[json.title] = json.id;
+
                         const comments = await asanaHttpService.getAsanaTaskComments(issues[i].taskId);
                         const downloadImagePromises = [];
     
@@ -347,16 +351,12 @@ export async function initControllers() {
                         const downloadImagePromisesResults = await Promise.allSettled(downloadImagePromises);
                         let uploadCounter = 0;
     
-                        const json = await result[i]?.value?.json();
-    
                         if(json) {
                             await JetSpaceHttpService.addTaskToBoard(board.id, json.id);
                         }
     
     
                         if (comments.length) {
-    
-    
                             if(!json) {
                                console.log(`${issues[i].name} не было перенесено, добавьте мануально`);
                             }
